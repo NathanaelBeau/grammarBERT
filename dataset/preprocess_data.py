@@ -15,6 +15,7 @@ def get_data():
 def preprocess_examples(dataset):
     act_dict, primitives = get_act_dict()
     len_code = []
+    pass_examples = 0
     with open('dataset/output_data.jsonl', 'w') as output_file:
         for index, sample in enumerate(iter(dataset)):
             try:
@@ -35,9 +36,10 @@ def preprocess_examples(dataset):
                 output_file.write('\n')  # add newline
 
             except:
+                pass_examples += 1
                 continue
 
-        print('number of example', index)
+        print('number of example', index - pass_examples)
         print('mean', np.mean(len_code))
         print('var', np.var(len_code))
 
