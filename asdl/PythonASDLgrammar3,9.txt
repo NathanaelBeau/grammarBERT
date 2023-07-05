@@ -41,8 +41,6 @@ stmt = FunctionDef(identifier name, arguments args,
       | Expr(expr value)
       | Pass | Break | Continue
 
-      attributes (int lineno, int col_offset, int? end_lineno, int? end_col_offset)
-
 expr = BoolOp(boolop op, expr* values)
      | NamedExpr(expr target, expr value)
      | BinOp(expr left, operator op, expr right)

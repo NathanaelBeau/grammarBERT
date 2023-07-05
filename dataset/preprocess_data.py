@@ -1,6 +1,8 @@
 import json
 import ast
 
+import numpy as np
+
 from datasets import load_dataset
 from asdl.ast_operation import ast2seq
 from asdl.grammar import Grammar, GrammarRule, ReduceAction
@@ -11,21 +13,33 @@ def get_data():
     return ds
 
 def preprocess_examples(dataset):
-    act_dict, _ = get_act_dict()
-
+    act_dict, primitives = get_act_dict()
+    len_code = []
     with open('dataset/output_data.jsonl', 'w') as output_file:
         for index, sample in enumerate(iter(dataset)):
-            code = sample['content']
-            example = {'code': code}
+            try:
+                code = sample['content']
+                example = {'code': code}
 
-            python_ast = ast.parse(code)
-            action_seq = ast2seq(python_ast, act_dict)
-            print(len(action_seq))
-            print(action_seq)
+                python_ast = ast.parse(code)
+                action_seq_grammar, _, _, _ = ast2seq(python_ast, act_dict, primitives=primitives)
+                actions_seq = [
+                    action[0].label if isinstance(action[0], GrammarRule) or isinstance(action[0], ReduceAction)
+                    else (str(action[0]))
+                    for action in action_seq_grammar]
 
-            example['action_seq'] = action_seq
-            json.dump(example, output_file)  # write processed example to file
-            output_file.write('\n')  # add newline
+                len_code.append(len(actions_seq))
+
+                example['action_seq'] = actions_seq
+                json.dump(example, output_file)  # write processed example to file
+                output_file.write('\n')  # add newline
+
+            except:
+                continue
+
+        print('number of example', index)
+        print('mean', np.mean(len_code))
+        print('var', np.var(len_code))
 
 def get_act_dict(path='./asdl/PythonASDLgrammar3,9.txt'):
     asdl_text = open(path).read()
