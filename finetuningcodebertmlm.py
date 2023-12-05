@@ -4,6 +4,7 @@ from torch.utils.data import Dataset, DataLoader
 import random
 import torch
 import wandb
+from asdl.ast_operation import Grammar, GrammarRule, ReduceAction
 
 
 
@@ -17,6 +18,20 @@ tokenizer = RobertaTokenizer.from_pretrained(model_checkpoint)
 jsonl_file = 'dataset/output_data.jsonl'
 with open(jsonl_file, 'r') as file:
     full_data = [json.loads(line) for line in file]
+
+# retrieve all grammar actions in a list
+asdl_text = open('./asdl/PythonASDLgrammar3,9.txt').read()
+grammar, _, _ = Grammar.from_text(asdl_text)
+act_list = [GrammarRule(rule.constructor.name, rule.type.name, rule.fields) for rule in grammar]
+assert (len(grammar) == len(act_list))
+Reduce = ReduceAction('Reduce')
+act_dict = dict([(act.label, act) for act in act_list])
+
+# increase the vocabulary of Bert model and tokenizer
+new_tokens = act_dict
+num_added_toks = tokenizer.add_tokens(new_tokens)
+
+model.resize_token_embeddings(len(tokenizer))
 
 # Dataset class from pytorch
 class CodeDataset(Dataset):
