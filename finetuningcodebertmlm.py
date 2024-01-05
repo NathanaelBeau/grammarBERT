@@ -16,10 +16,10 @@ tokenizer = RobertaTokenizer.from_pretrained(model_checkpoint)
 
 # loading data from jsonl file
 jsonl_file = 'dataset/output_data.jsonl'
-# with open(jsonl_file, 'r') as file:
-#     full_data = [json.loads(line) for line in file]
-with open(jsonl_file) as f:
-    full_data = json.load(f)
+with open(jsonl_file, 'r') as file:
+    full_data = [json.loads(line) for line in file]
+# with open(jsonl_file) as f:
+#     full_data = json.load(f)
 
 
 #Checking loaded data
