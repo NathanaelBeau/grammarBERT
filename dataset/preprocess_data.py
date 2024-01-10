@@ -69,7 +69,7 @@ def preprocess_examples(dataset, act_dict, primitives):
             if len(batch) == BATCH_SIZE:
                 futures.append(executor.submit(preprocess_batch, batch, act_dict, primitives))
                 batch = []
-            if index == 40:
+            if index == 100:
                 break
 
         # Ajouter le dernier lot si nécessaire
