@@ -141,7 +141,7 @@ data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm_probabi
 
 # Assuming each epoch has 'steps_per_epoch' steps and you want to evaluate every 'n' epochs
 steps_per_epoch = len(train_loader)  # Number of batches in the training loader
-n = 2  # Evaluate every 2 epochs
+n = 5  # Evaluate every 2 epochs
 
 training_args = TrainingArguments(
     output_dir=f"./outputs/{model_checkpoint}-finetuned-codebertmlm",
