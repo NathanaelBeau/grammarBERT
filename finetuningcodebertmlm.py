@@ -1,4 +1,5 @@
-from copy import deepcopy
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Use GPU 0
 
 from transformers import RobertaForMaskedLM, RobertaTokenizer, DataCollatorForLanguageModeling, TrainingArguments, Trainer, TrainerCallback
 import json
@@ -138,20 +139,24 @@ test_loader = DataLoader(test_dataset, batch_size=2, shuffle=False)
 # Creating Datacollator
 data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm_probability=0.15)
 
-
+# Assuming each epoch has 'steps_per_epoch' steps and you want to evaluate every 'n' epochs
+steps_per_epoch = len(train_loader)  # Number of batches in the training loader
+n = 2  # Evaluate every 2 epochs
 
 training_args = TrainingArguments(
     output_dir=f"./outputs/{model_checkpoint}-finetuned-codebertmlm",
-    evaluation_strategy="epoch", 
+    evaluation_strategy="steps",
     learning_rate=5e-5,
     weight_decay=0.01,
-    save_strategy="epoch",
+    save_strategy="steps",
+    eval_steps=steps_per_epoch * n,  # Evaluate every 'n' epochs
+    logging_steps=steps_per_epoch * n,  # Log every 'n' epochs
+    save_steps=steps_per_epoch * n,  # Save every 'n' epochs
     # per_device_train_batch_size=2,
     # per_device_eval_batch_size=2,
     num_train_epochs=300,
     push_to_hub=False,  
     fp16=False,
-    logging_steps=1,
     report_to='none'
     
 )
