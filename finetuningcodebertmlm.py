@@ -1,10 +1,15 @@
+from copy import deepcopy
+
 from transformers import RobertaForMaskedLM, RobertaTokenizer, DataCollatorForLanguageModeling, TrainingArguments, Trainer, TrainerCallback
 import json
 from torch.utils.data import Dataset, DataLoader
 import random
 import torch
-import wandb
+import numpy as np
+import evaluate
 from asdl.ast_operation import Grammar, GrammarRule, ReduceAction
+from transformers import EvalPrediction
+from sklearn.metrics import accuracy_score
 
 
 
@@ -18,8 +23,6 @@ tokenizer = RobertaTokenizer.from_pretrained(model_checkpoint)
 jsonl_file = 'dataset/output_data.jsonl'
 with open(jsonl_file, 'r') as file:
     full_data = [json.loads(line) for line in file]
-# with open(jsonl_file) as f:
-#     full_data = json.load(f)
 
 
 #Checking loaded data
@@ -32,11 +35,14 @@ grammar, _, _ = Grammar.from_text(asdl_text)
 act_list = [GrammarRule(rule.constructor.name, rule.type.name, rule.fields) for rule in grammar]
 assert (len(grammar) == len(act_list))
 Reduce = ReduceAction('Reduce')
+ReducePrimitif = ReduceAction('Reduce_primitif')
 act_dict = dict([(act.label, act) for act in act_list])
+act_dict[Reduce.label] = Reduce
+act_dict[ReducePrimitif.label] = ReducePrimitif
 
 # # increase the vocabulary of Bert model and tokenizer
-new_tokens = act_dict
-num_added_toks = tokenizer.add_tokens(new_tokens)
+new_tokens = list(act_dict)
+tokenizer.add_tokens(new_tokens)
 
 model.resize_token_embeddings(len(tokenizer))
 
@@ -53,7 +59,9 @@ class CodeDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        code, action_seq = self.data[idx]
+        item = self.data[idx]
+        code = item['code']
+        action_seq = item['action_seq']
         encoded_code = self.tokenizer.encode_plus(
             code,
             add_special_tokens=True, 
@@ -63,21 +71,49 @@ class CodeDataset(Dataset):
             return_tensors='pt')
         
         encoded_actions = self.tokenizer.encode_plus(
-            action_seq, 
-            add_special_tokens=True, 
-            max_length=self.max_length, 
-            padding='max_length', 
-            truncation=True, 
+            action_seq,
+            add_special_tokens=True,
+            max_length=self.max_length,
+            padding='max_length',
+            truncation=True,
             return_tensors='pt')
-        
 
-        return {'input_ids': encoded_code['input_ids'].squeeze(), 
-                'attention_mask': encoded_code['attention_mask'].squeeze(), 
+        return {'input_ids': encoded_code['input_ids'].squeeze(),
+                'attention_mask': encoded_code['attention_mask'].squeeze(),
                 'labels': encoded_actions['input_ids'].squeeze()
             }
 
 
+        # # Convert action sequence tokens to IDs
+        # action_seq_ids = self.tokenizer.convert_tokens_to_ids(action_seq)
+        # # Ensure action_seq_ids length does not exceed max_length
+        # action_seq_ids = [0] + action_seq_ids[:self.max_length - 1] + [1]
+        #
+        # # Pad with zeros if shorter than max_length
+        # padding_length = self.max_length - len(action_seq_ids)
+        # action_seq_ids.extend([self.tokenizer.pad_token_id] * padding_length)
+        #
+        #
+        # return {'input_ids': encoded_code['input_ids'].squeeze(),
+        #         'attention_mask': encoded_code['attention_mask'].squeeze(),
+        #         'labels': torch.tensor(action_seq_ids, dtype=torch.int32)
+        #     }
 
+
+def compute_metrics(eval_pred: EvalPrediction):
+    predictions, labels = eval_pred
+    # Flatten the outputs and labels
+    predictions = np.argmax(predictions, axis=-1).flatten()
+    labels = labels.flatten()
+
+    # Compute accuracy, excluding the ignored index (-100 used for non-masked tokens)
+    mask = labels != -100
+    predictions = predictions[mask]
+    labels = labels[mask]
+
+    return {"accuracy": accuracy_score(labels, predictions)}
+
+# full_data = full_data[:5]
 
 # train test split
 random.shuffle(full_data)
@@ -95,7 +131,7 @@ print(f"Testing dataset size: {len(test_data)}")
 train_dataset = CodeDataset(train_data, tokenizer)
 test_dataset = CodeDataset(test_data, tokenizer)
 
-train_loader = DataLoader(train_dataset, batch_size=2, shuffle=True)
+train_loader = DataLoader(train_dataset, batch_size=40, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=2, shuffle=False)
 
 
@@ -103,74 +139,22 @@ test_loader = DataLoader(test_dataset, batch_size=2, shuffle=False)
 data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm_probability=0.15)
 
 
-################print mask examples#################
-# samples = [dataset[i] for i in range(2)]
-# for sample in samples:
-#     input_ids = sample['input_ids']
-#     print(f"\n'>>> {tokenizer.decode(input_ids)}'")
-
-# for chunk in data_collator(samples)["input_ids"]:
-#     print(f"\n'>>> {tokenizer.decode(chunk)}'")
-
-
-###############idea: whole word masking= second data collector?##########################
-
-
-# train_size = 50
-# test_size = int(0.1 * train_size)
-
-# downsampled_dataset = dataset["train"].train_test_split(
-#     train_size=train_size, test_size=test_size, seed=42
-# )
-# downsampled_dataset
-
-####################Dataset dict from huggingface not used because we use dataset class from pytorch#############
-# DatasetDict({
-#     train: Dataset({
-#         features: ['code', 'action_seq'],
-#         num_rows: 40
-#     })
-#     test: Dataset({
-#         features: ['code', 'action_seq'],
-#         num_rows: 10
-#     })
-#     unsupervised: Dataset({
-#         features: ['code', 'action_seq'],
-#         num_rows: 00
-#     })
-# })
-
-# DatasetDict({
-#     train: Dataset({
-#         features: ['attention_mask', 'input_ids', 'labels', 'word_ids'],
-#         num_rows: 10000
-#     })
-#     test: Dataset({
-#         features: ['attention_mask', 'input_ids', 'labels', 'word_ids'],
-#         num_rows: 1000
-#     })
-# })
-
-
-
-
-###########Training arguments and trainer config################################
-
 
 training_args = TrainingArguments(
-    output_dir=f"{model_checkpoint}-finetuned-codebertmlm",
+    output_dir=f"./outputs/{model_checkpoint}-finetuned-codebertmlm",
     evaluation_strategy="epoch", 
-    learning_rate=2e-5, 
-    weight_decay=0.01, 
-    per_device_train_batch_size=2, 
-    per_device_eval_batch_size=2, 
-    num_train_epochs=3,
+    learning_rate=1e-4,
+    weight_decay=0.01,
+    save_strategy="epoch",
+    # per_device_train_batch_size=2,
+    # per_device_eval_batch_size=2,
+    num_train_epochs=100,
     push_to_hub=False,  
     fp16=False,
-    logging_steps=len(train_loader)
+    logging_steps=1,
+    report_to='none'
     
 )
-
 
 
 # Callback for debugging
@@ -179,18 +163,16 @@ class DebugCallback(TrainerCallback):
         print(logs)
 
 
-
 trainer = Trainer(
     model=model, 
     args=training_args, 
     train_dataset=train_loader.dataset, 
-    eval_dataset=test_loader.dataset, 
+    eval_dataset=train_loader.dataset,
     data_collator=data_collator, 
-    tokenizer=tokenizer, 
+    tokenizer=tokenizer,
+    compute_metrics=compute_metrics,
     callbacks=[DebugCallback()]
-
 )
-
 
 
 

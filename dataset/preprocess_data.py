@@ -5,11 +5,14 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datasets import load_dataset
 from asdl.ast_operation import ast2seq
 from asdl.grammar import Grammar, GrammarRule, ReduceAction
+from transformers import RobertaForMaskedLM, RobertaTokenizer
 
 # Constante pour la taille des lots
 BATCH_SIZE = 100
 # Nombre de threads à utiliser pour le ThreadPoolExecutor
 NUM_THREADS = 4
+
+tokenizer = RobertaTokenizer.from_pretrained("microsoft/codebert-base-mlm")
 
 def get_data():
     ds = load_dataset("bigcode/the-stack", data_dir="data/python", split="train", streaming=True)
@@ -24,11 +27,19 @@ def preprocess_example(sample, act_dict, primitives):
 
         python_ast = ast.parse(code)
         action_seq_grammar, _, _, _ = ast2seq(python_ast, act_dict, primitives=primitives)
-        actions_seq = [
-            action[0].label if isinstance(action[0], GrammarRule) or isinstance(action[0], ReduceAction)
-            else (str(action[0]))
-            for action in action_seq_grammar]
-
+        # actions_seq = [
+        #     action[0].label if isinstance(action[0], GrammarRule) or isinstance(action[0], ReduceAction)
+        #     else tokenizer.tokenize(str(action[0]))
+        #     for action in action_seq_grammar]
+        actions_seq = []
+        for action in action_seq_grammar:  # We need to tokenize with the codeBERT tokenizer the primitives values also
+            if isinstance(action[0], GrammarRule) or isinstance(action[0], ReduceAction):
+                actions_seq.append(action[0].label)
+            else:
+                tokenized = tokenizer.tokenize(str(action[0]))
+                actions_seq.extend(tokenized)  # This adds each element of the list individually
+        if len(actions_seq) > 200:
+            return None
         example['action_seq'] = actions_seq
         return example
     except Exception as e:
@@ -53,11 +64,13 @@ def preprocess_examples(dataset, act_dict, primitives):
         futures = []
         batch = []
 
-        for sample in dataset:
+        for index, sample in enumerate(dataset):
             batch.append(sample)
             if len(batch) == BATCH_SIZE:
                 futures.append(executor.submit(preprocess_batch, batch, act_dict, primitives))
                 batch = []
+            if index == 40:
+                break
 
         # Ajouter le dernier lot si nécessaire
         if batch:
@@ -68,6 +81,7 @@ def preprocess_examples(dataset, act_dict, primitives):
             processed_batch = future.result()
             output_data.extend(processed_batch)
             len_code.extend([len(example['action_seq']) for example in processed_batch if example])
+
 
     # Écriture des données traitées en bloc dans le fichier
     with open('dataset/output_data.jsonl', 'w') as output_file:
