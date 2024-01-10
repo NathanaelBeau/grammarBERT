@@ -38,7 +38,7 @@ def preprocess_example(sample, act_dict, primitives):
             else:
                 tokenized = tokenizer.tokenize(str(action[0]))
                 actions_seq.extend(tokenized)  # This adds each element of the list individually
-        if len(actions_seq) > 200:
+        if len(actions_seq) > 512:
             return None
         example['action_seq'] = actions_seq
         return example
@@ -69,7 +69,7 @@ def preprocess_examples(dataset, act_dict, primitives):
             if len(batch) == BATCH_SIZE:
                 futures.append(executor.submit(preprocess_batch, batch, act_dict, primitives))
                 batch = []
-            if index == 100:
+            if index == 10_000_000:
                 break
 
         # Ajouter le dernier lot si nécessaire
