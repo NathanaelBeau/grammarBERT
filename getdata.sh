@@ -6,8 +6,12 @@
 
 #SBATCH --error=./logfiles/getdata.err
 
-#SBATCH --partition=cpu_p1
+#SBATCH --partition=prepost
 
-#SBATCH --time=60:00:00
+#SBATCH --ntasks=4
+
+#SBATCH --cpus-per-task=1
+
+#SBATCH --time=20:00:00
 
 srun python get_data.py
