@@ -21,7 +21,7 @@ tokenizer = RobertaTokenizer.from_pretrained(model_checkpoint)
 
 
 # loading data from jsonl file
-jsonl_file = 'dataset/output_data.jsonl'
+jsonl_file = 'dataset/output_data_filtering<200.jsonl'
 with open(jsonl_file, 'r') as file:
     full_data = [json.loads(line) for line in file]
 
@@ -141,7 +141,7 @@ data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm_probabi
 
 # Assuming each epoch has 'steps_per_epoch' steps and you want to evaluate every 'n' epochs
 steps_per_epoch = len(train_loader)  # Number of batches in the training loader
-n = 20  # Evaluate every 2 epochs
+n = 10  # Evaluate every 2 epochs
 
 training_args = TrainingArguments(
     output_dir=f"./outputs/{model_checkpoint}-finetuned-codebertmlm",
@@ -172,7 +172,7 @@ trainer = Trainer(
     model=model, 
     args=training_args, 
     train_dataset=train_loader.dataset, 
-    eval_dataset=train_loader.dataset,
+    eval_dataset=test_loader.dataset,
     data_collator=data_collator, 
     tokenizer=tokenizer,
     compute_metrics=compute_metrics,
