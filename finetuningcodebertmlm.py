@@ -118,7 +118,7 @@ def compute_metrics(eval_pred: EvalPrediction):
 
 # train test split
 random.shuffle(full_data)
-train_size = int(0.8 * len(full_data))
+train_size = int(0.9 * len(full_data))
 train_data, test_data = full_data[:train_size], full_data[train_size:]
 
 
@@ -132,8 +132,8 @@ print(f"Testing dataset size: {len(test_data)}")
 train_dataset = CodeDataset(train_data, tokenizer)
 test_dataset = CodeDataset(test_data, tokenizer)
 
-train_loader = DataLoader(train_dataset, batch_size=40, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size=2, shuffle=False)
+train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
 
 
 # Creating Datacollator
