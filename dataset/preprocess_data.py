@@ -17,7 +17,7 @@ tokenizer = RobertaTokenizer.from_pretrained("microsoft/codebert-base-mlm")
 def get_data():
     ds = load_dataset("bigcode/the-stack", data_dir="data/python", split="train", streaming=True)
     # Ajouter un filtre pour ne garder que les exemples avec moins de 200 tokens (à adapter selon le besoin)
-    filtered_ds = (sample for sample in ds if len(sample['content'].split()) < 200)
+    filtered_ds = (sample for sample in ds if len(sample['content'].split()) < 450)
     return filtered_ds
 
 def preprocess_example(sample, act_dict, primitives):
@@ -84,7 +84,7 @@ def preprocess_examples(dataset, act_dict, primitives):
 
 
     # Écriture des données traitées en bloc dans le fichier
-    with open('dataset/output_data.jsonl', 'w') as output_file:
+    with open('dataset/output_data_filtering<200.jsonl', 'w') as output_file:
         for example in output_data:
             if example:  # Assurez-vous que l'exemple n'est pas None
                 json.dump(example, output_file)
