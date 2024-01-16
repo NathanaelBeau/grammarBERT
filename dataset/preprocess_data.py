@@ -15,9 +15,9 @@ NUM_THREADS = 4
 tokenizer = RobertaTokenizer.from_pretrained("microsoft/codebert-base-mlm")
 
 def get_data():
-    ds = load_dataset("bigcode/the-stack", data_dir="data/python", split="train", streaming=True)
+    ds = load_dataset("the-stack", data_dir="data/python", split="train", streaming=True)
     # Ajouter un filtre pour ne garder que les exemples avec moins de 200 tokens (à adapter selon le besoin)
-    filtered_ds = (sample for sample in ds if len(sample['content'].split()) < 450)
+    filtered_ds = (sample for sample in ds if len(sample['content'].split()) < 300)
     return filtered_ds
 
 def preprocess_example(sample, act_dict, primitives):
