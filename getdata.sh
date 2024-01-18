@@ -10,9 +10,9 @@
 
 #SBATCH --cpus-per-task=1
 
-#SBATCH --partition=gpu_p2
+#SBATCH --partition=qos_gpu-t4
 
-#SBATCH --time=50:00:00
+#SBATCH --time=60:00:00
 
 module load anaconda-py3/2020.11
 conda activate grammarBERT
