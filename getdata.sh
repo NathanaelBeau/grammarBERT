@@ -10,6 +10,8 @@
 
 #SBATCH --cpus-per-task=1
 
+#SBATCH --partition=gpu_p2
+
 #SBATCH --time=50:00:00
 
 module load anaconda-py3/2020.11
