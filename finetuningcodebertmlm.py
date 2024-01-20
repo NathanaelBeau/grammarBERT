@@ -16,8 +16,8 @@ from sklearn.metrics import accuracy_score
 
 # Model and tokenizer initialization
 model_checkpoint = "microsoft/codebert-base-mlm"
-model = RobertaForMaskedLM.from_pretrained(model_checkpoint)
-tokenizer = RobertaTokenizer.from_pretrained(model_checkpoint)
+model = RobertaForMaskedLM.from_pretrained(model_checkpoint, local_files_only=True)
+tokenizer = RobertaTokenizer.from_pretrained(model_checkpoint, local_files_only=True)
 
 
 # loading data from jsonl file
@@ -132,8 +132,8 @@ print(f"Testing dataset size: {len(test_data)}")
 train_dataset = CodeDataset(train_data, tokenizer)
 test_dataset = CodeDataset(test_data, tokenizer)
 
-train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
+train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False)
 
 
 # Creating Datacollator
@@ -141,7 +141,7 @@ data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm_probabi
 
 # Assuming each epoch has 'steps_per_epoch' steps and you want to evaluate every 'n' epochs
 steps_per_epoch = len(train_loader)  # Number of batches in the training loader
-n = 10  # Evaluate every 2 epochs
+n = 1  # Evaluate every 2 epochs
 
 training_args = TrainingArguments(
     output_dir=f"./outputs/{model_checkpoint}-finetuned-codebertmlm",
@@ -154,11 +154,10 @@ training_args = TrainingArguments(
     save_steps=steps_per_epoch * n,  # Save every 'n' epochs
     # per_device_train_batch_size=2,
     # per_device_eval_batch_size=2,
-    num_train_epochs=10,
+    num_train_epochs=5,
     push_to_hub=False,  
     fp16=False,
     report_to='none'
-    
 )
 
 
