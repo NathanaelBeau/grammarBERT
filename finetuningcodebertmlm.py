@@ -15,7 +15,7 @@ from sklearn.metrics import accuracy_score
 
 
 # Model and tokenizer initialization
-model_checkpoint = "microsoft/codebert-base-mlm"
+model_checkpoint = "microsoft/codebert-base"
 model = RobertaForMaskedLM.from_pretrained(model_checkpoint, local_files_only=True)
 tokenizer = RobertaTokenizer.from_pretrained(model_checkpoint, local_files_only=True)
 
@@ -61,15 +61,7 @@ class CodeDataset(Dataset):
 
     def __getitem__(self, idx):
         item = self.data[idx]
-        code = item['code']
         action_seq = item['action_seq']
-        encoded_code = self.tokenizer.encode_plus(
-            code,
-            add_special_tokens=True, 
-            max_length=self.max_length, 
-            padding='max_length', 
-            truncation=True, 
-            return_tensors='pt')
         
         encoded_actions = self.tokenizer.encode_plus(
             action_seq,
@@ -79,9 +71,9 @@ class CodeDataset(Dataset):
             truncation=True,
             return_tensors='pt')
 
-        return {'input_ids': encoded_code['input_ids'].squeeze(),
-                'attention_mask': encoded_code['attention_mask'].squeeze(),
-                'labels': encoded_actions['input_ids'].squeeze()
+        return {'input_ids': encoded_actions['input_ids'].squeeze(),
+                'attention_mask': encoded_actions['attention_mask'].squeeze(),
+                'labels': encoded_actions['labels'].squeeze()
             }
 
 
