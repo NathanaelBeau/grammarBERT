@@ -6,6 +6,7 @@ import json
 from torch.utils.data import Dataset, DataLoader
 import random
 import torch
+import gzip
 import numpy as np
 import evaluate
 from asdl.ast_operation import Grammar, GrammarRule, ReduceAction
@@ -20,11 +21,20 @@ model = RobertaForMaskedLM.from_pretrained(model_checkpoint, local_files_only=Tr
 tokenizer = RobertaTokenizer.from_pretrained(model_checkpoint, local_files_only=True)
 
 
-# loading data from jsonl file
-jsonl_file = 'dataset/output_data.jsonl'
-with open(jsonl_file, 'r') as file:
-    full_data = [json.loads(line) for line in file]
+# Specify the path to your GZIP-compressed JSONL file
+gzipped_jsonl_file = 'dataset/output_data.jsonl.gz'
 
+# Function to read GZIP-compressed JSONL file
+def read_gzipped_jsonl(file_path):
+    data = []
+    with gzip.open(file_path, 'rt') as file:  # 'rt' mode for text reading
+        for line in file:
+            json_obj = json.loads(line)
+            data.append(json_obj)
+    return data
+
+# loading data from GZIP-compressed JSONL file
+full_data = read_gzipped_jsonl(gzipped_jsonl_file)
 
 #Checking loaded data
 print(f"Number of data examples loaded : {len(full_data)}")
