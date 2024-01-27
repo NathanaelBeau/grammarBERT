@@ -22,7 +22,7 @@ tokenizer = RobertaTokenizer.from_pretrained(model_checkpoint, local_files_only=
 
 
 # Specify the path to your GZIP-compressed JSONL file
-gzipped_jsonl_file = 'dataset/output_data.jsonl.gz'
+gzipped_jsonl_file = 'dataset/reduced_output_data.jsonl.gz'
 
 # Function to read GZIP-compressed JSONL file
 def read_gzipped_jsonl(file_path):
@@ -35,6 +35,8 @@ def read_gzipped_jsonl(file_path):
 
 # loading data from GZIP-compressed JSONL file
 full_data = read_gzipped_jsonl(gzipped_jsonl_file)
+
+full_data = full_data[:10]
 
 #Checking loaded data
 print(f"Number of data examples loaded : {len(full_data)}")
@@ -60,7 +62,7 @@ model.resize_token_embeddings(len(tokenizer))
 
 # Dataset class from pytorch
 class CodeDataset(Dataset):
-    def __init__(self, data, tokenizer, max_length=512):
+    def __init__(self, data, tokenizer, max_length=256):
         self.data = data
         self.tokenizer = tokenizer
         self.max_length = max_length
@@ -83,7 +85,7 @@ class CodeDataset(Dataset):
 
         return {'input_ids': encoded_actions['input_ids'].squeeze(),
                 'attention_mask': encoded_actions['attention_mask'].squeeze(),
-                'labels': encoded_actions['labels'].squeeze()
+                'labels': encoded_actions['input_ids'].squeeze()
             }
 
 
@@ -122,7 +124,7 @@ def compute_metrics(eval_pred: EvalPrediction):
 random.shuffle(full_data)
 train_size = int(0.9 * len(full_data))
 train_data, test_data = full_data[:train_size], full_data[train_size:]
-
+test_data = train_data
 
 #print training and testing dataset
 print(f"Training dataset size : {len(train_data)}")
@@ -134,15 +136,12 @@ print(f"Testing dataset size: {len(test_data)}")
 train_dataset = CodeDataset(train_data, tokenizer)
 test_dataset = CodeDataset(test_data, tokenizer)
 
-train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False)
-
 
 # Creating Datacollator
 data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm_probability=0.15)
 
 # Assuming each epoch has 'steps_per_epoch' steps and you want to evaluate every 'n' epochs
-steps_per_epoch = len(train_loader)  # Number of batches in the training loader
+steps_per_epoch = len(train_dataset)  # Number of batches in the training loader
 n = 1  # Evaluate every 2 epochs
 
 training_args = TrainingArguments(
@@ -154,8 +153,8 @@ training_args = TrainingArguments(
     eval_steps=steps_per_epoch * n,  # Evaluate every 'n' epochs
     logging_steps=steps_per_epoch * n,  # Log every 'n' epochs
     save_steps=steps_per_epoch * n,  # Save every 'n' epochs
-    # per_device_train_batch_size=2,
-    # per_device_eval_batch_size=2,
+    per_device_train_batch_size=32,
+    per_device_eval_batch_size=8,
     num_train_epochs=5,
     push_to_hub=False,  
     fp16=False,
@@ -172,8 +171,8 @@ class DebugCallback(TrainerCallback):
 trainer = Trainer(
     model=model, 
     args=training_args, 
-    train_dataset=train_loader.dataset, 
-    eval_dataset=test_loader.dataset,
+    train_dataset=train_dataset,
+    eval_dataset=test_dataset,
     data_collator=data_collator, 
     tokenizer=tokenizer,
     compute_metrics=compute_metrics,
