@@ -36,7 +36,7 @@ def read_gzipped_jsonl(file_path):
 # loading data from GZIP-compressed JSONL file
 full_data = read_gzipped_jsonl(gzipped_jsonl_file)
 
-full_data = full_data[:10]
+# full_data = full_data[:10]
 
 #Checking loaded data
 print(f"Number of data examples loaded : {len(full_data)}")
