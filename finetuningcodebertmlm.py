@@ -1,5 +1,5 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Use GPU 0
+# os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Use GPU 0
 
 from transformers import RobertaForMaskedLM, RobertaTokenizer, DataCollatorForLanguageModeling, TrainingArguments, Trainer, TrainerCallback
 import json
@@ -150,15 +150,17 @@ training_args = TrainingArguments(
     learning_rate=5e-5,
     weight_decay=0.01,
     save_strategy="steps",
-    eval_steps=steps_per_epoch * n,  # Evaluate every 'n' epochs
-    logging_steps=steps_per_epoch * n,  # Log every 'n' epochs
-    save_steps=steps_per_epoch * n,  # Save every 'n' epochs
-    per_device_train_batch_size=32,
-    per_device_eval_batch_size=8,
+    eval_steps=steps_per_epoch * n,
+    logging_steps=steps_per_epoch * n,
+    save_steps=steps_per_epoch * n,
+    per_device_train_batch_size=32,  # Adjust based on your GPU memory
+    per_device_eval_batch_size=8,    # Adjust based on your GPU memory
     num_train_epochs=5,
-    push_to_hub=False,  
-    fp16=False,
-    report_to='none'
+    push_to_hub=False,
+    fp16=True,  # Enable if GPUs support FP16
+    report_to='none',
+    # Additional arguments for multi-GPU setup
+    device='cuda',  # Ensure that CUDA is the selected device
 )
 
 
