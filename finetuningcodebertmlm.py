@@ -155,12 +155,11 @@ training_args = TrainingArguments(
     save_steps=steps_per_epoch * n,
     per_device_train_batch_size=32,  # Adjust based on your GPU memory
     per_device_eval_batch_size=8,    # Adjust based on your GPU memory
-    num_train_epochs=5,
+    num_train_epochs=50,
     push_to_hub=False,
     fp16=True,  # Enable if GPUs support FP16
     report_to='none',
     # Additional arguments for multi-GPU setup
-    device='cuda',  # Ensure that CUDA is the selected device
 )
 
 
