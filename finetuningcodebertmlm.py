@@ -124,7 +124,7 @@ def compute_metrics(eval_pred: EvalPrediction):
 random.shuffle(full_data)
 train_size = int(0.9 * len(full_data))
 train_data, test_data = full_data[:train_size], full_data[train_size:]
-test_data = train_data
+# test_data = train_data
 
 #print training and testing dataset
 print(f"Training dataset size : {len(train_data)}")
@@ -155,7 +155,7 @@ training_args = TrainingArguments(
     save_steps=steps_per_epoch * n,
     per_device_train_batch_size=32,  # Adjust based on your GPU memory
     per_device_eval_batch_size=8,    # Adjust based on your GPU memory
-    num_train_epochs=50,
+    num_train_epochs=5,
     push_to_hub=False,
     fp16=True,  # Enable if GPUs support FP16
     report_to='none',
