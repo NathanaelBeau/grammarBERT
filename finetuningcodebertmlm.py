@@ -1,5 +1,8 @@
-import os
-# os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Use GPU 0
+import random
+
+# Set the random seed to a specific number
+random.seed(42)
+
 
 from transformers import RobertaForMaskedLM, RobertaTokenizer, DataCollatorForLanguageModeling, TrainingArguments, Trainer, TrainerCallback
 import json
@@ -22,7 +25,7 @@ tokenizer = RobertaTokenizer.from_pretrained(model_checkpoint, local_files_only=
 
 
 # Specify the path to your GZIP-compressed JSONL file
-gzipped_jsonl_file = 'dataset/reduced_output_data.jsonl.gz'
+gzipped_jsonl_file = 'dataset/output_data.jsonl.gz'
 
 # Function to read GZIP-compressed JSONL file
 def read_gzipped_jsonl(file_path):
@@ -140,27 +143,35 @@ test_dataset = CodeDataset(test_data, tokenizer)
 # Creating Datacollator
 data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm_probability=0.15)
 
-# Assuming each epoch has 'steps_per_epoch' steps and you want to evaluate every 'n' epochs
-steps_per_epoch = len(train_dataset)  # Number of batches in the training loader
-n = 1  # Evaluate every 2 epochs
+num_gpus = torch.cuda.device_count()  # Automatically detects the number of GPUs available
 
+# Assuming per_device_train_batch_size is the batch size per GPU
+per_device_train_batch_size = 32  # Adjust based on your GPU memory
+
+# Effective total batch size across all GPUs
+total_train_batch_size = per_device_train_batch_size * num_gpus
+
+# Calculate steps_per_epoch as the number of samples divided by the total batch size
+steps_per_epoch = len(train_dataset) // total_train_batch_size  # Use integer division
+
+# Update training arguments
 training_args = TrainingArguments(
     output_dir=f"./outputs/{model_checkpoint}-finetuned-codebertmlm",
-    evaluation_strategy="steps",
+    evaluation_strategy="epoch",  # Evaluate at the end of each epoch
     learning_rate=5e-5,
     weight_decay=0.01,
-    save_strategy="steps",
-    eval_steps=steps_per_epoch * n,
-    logging_steps=steps_per_epoch * n,
-    save_steps=steps_per_epoch * n,
-    per_device_train_batch_size=32,  # Adjust based on your GPU memory
-    per_device_eval_batch_size=8,    # Adjust based on your GPU memory
+    save_strategy="epoch",  # Save at the end of each epoch
+    logging_steps=steps_per_epoch,  # Optional: Adjust as needed
+    per_device_train_batch_size=per_device_train_batch_size,
+    per_device_eval_batch_size=8,  # Adjust based on your GPU memory
     num_train_epochs=5,
     push_to_hub=False,
     fp16=True,  # Enable if GPUs support FP16
     report_to='none',
     # Additional arguments for multi-GPU setup
+    # ...
 )
+
 
 
 # Callback for debugging
