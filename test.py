@@ -68,9 +68,14 @@ gzipped_jsonl_file = 'dataset/evaluation_data.jsonl.gz'
 # ...
 test_data = read_gzipped_jsonl(gzipped_jsonl_file)
 
+test_data = test_data[:10000]
+
 
 # Creating the test dataset
 test_dataset = CodeDataset(test_data, tokenizer)
+
+# Manual evaluation
+model.eval()
 
 # Define training arguments (adjust as needed)
 training_args = TrainingArguments(
