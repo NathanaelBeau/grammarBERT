@@ -3,6 +3,8 @@ import json
 import gzip
 from torch.utils.data import Dataset
 import numpy as np
+from datasets import load_metric
+
 from sklearn.metrics import accuracy_score
 from transformers import EvalPrediction
 
@@ -20,20 +22,12 @@ def read_gzipped_jsonl(file_path):
             data.append(json_obj)
     return data
 
-# Define the compute_metrics function (copy from your original script)
-def compute_metrics(eval_pred: EvalPrediction):
-    predictions, labels = eval_pred
-    # Flatten the outputs and labels
-    predictions = np.argmax(predictions, axis=-1).flatten()
-    labels = labels.flatten()
+metric = load_metric("accuracy")
 
-    # Compute accuracy, excluding the ignored index (-100 used for non-masked tokens)
-    mask = labels != -100
-    predictions = predictions[mask]
-    labels = labels[mask]
-
-    return {"accuracy": accuracy_score(labels, predictions)}
-
+def compute_metrics(eval_pred):
+    logits, labels = eval_pred
+    predictions = np.argmax(logits, axis=-1)
+    return {metric.compute(predictions=predictions, references=labels)}
 # Define the dataset class (copy from your original script)
 # Dataset class from pytorch
 class CodeDataset(Dataset):
@@ -80,7 +74,7 @@ model.eval()
 # Define training arguments (adjust as needed)
 training_args = TrainingArguments(
     output_dir=f"./outputs/{model_checkpoint}-finetuned-codebertmlm",
-    per_device_eval_batch_size=32,    # Adjust based on your GPU memory
+    per_device_eval_batch_size=8,    # Adjust based on your GPU memory
 eval_accumulation_steps=20,
     push_to_hub=False,
     report_to='none',
