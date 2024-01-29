@@ -80,12 +80,8 @@ model.eval()
 # Define training arguments (adjust as needed)
 training_args = TrainingArguments(
     output_dir=f"./outputs/{model_checkpoint}-finetuned-codebertmlm",
-    evaluation_strategy="steps",
-    learning_rate=5e-5,
-    weight_decay=0.01,
-    save_strategy="steps",
-    per_device_eval_batch_size=4,    # Adjust based on your GPU memory
-eval_accumulation_steps=5,
+    per_device_eval_batch_size=32,    # Adjust based on your GPU memory
+eval_accumulation_steps=20,
     push_to_hub=False,
     report_to='none',
     # Additional arguments for multi-GPU setup
