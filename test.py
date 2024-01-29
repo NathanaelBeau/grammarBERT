@@ -1,4 +1,3 @@
-from transformers import RobertaForMaskedLM, RobertaTokenizer, TrainingArguments, Trainer
 import json
 import gzip
 from torch.utils.data import Dataset
@@ -6,6 +5,12 @@ import numpy as np
 from sklearn.metrics import accuracy_score
 from transformers import EvalPrediction
 
+from transformers import RobertaForMaskedLM, RobertaTokenizer, DataCollatorForLanguageModeling, TrainingArguments, Trainer, TrainerCallback
+
+# Callback for debugging
+class DebugCallback(TrainerCallback):
+    def on_log(self, args, state, control, logs=None, **kwargs):
+        print(logs)
 
 # Model and tokenizer initialization (adjust paths and settings as needed)
 model_checkpoint = "outputs/microsoft/codebert-base-finetuned-codebertmlm/checkpoint-45"
@@ -77,6 +82,9 @@ test_data = read_gzipped_jsonl(gzipped_jsonl_file)
 
 test_data = test_data[:10000]
 
+# Creating Datacollator
+data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=True, mlm_probability=0.15)
+
 
 # Creating the test dataset
 test_dataset = CodeDataset(test_data, tokenizer)
@@ -103,7 +111,9 @@ trainer = Trainer(
     args=training_args,
     eval_dataset=test_dataset,
     tokenizer=tokenizer,
-    compute_metrics=compute_metrics
+    compute_metrics=compute_metrics,
+data_collator = data_collator,
+callbacks = [DebugCallback()]
 )
 
 # Perform the evaluation
