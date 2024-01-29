@@ -79,9 +79,8 @@ training_args = TrainingArguments(
     learning_rate=5e-5,
     weight_decay=0.01,
     save_strategy="steps",
-    per_device_eval_batch_size=8,    # Adjust based on your GPU memory
+    per_device_eval_batch_size=4,    # Adjust based on your GPU memory
     push_to_hub=False,
-    fp16=True,  # Enable if GPUs support FP16
     report_to='none',
     # Additional arguments for multi-GPU setup
 )
