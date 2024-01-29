@@ -80,6 +80,7 @@ training_args = TrainingArguments(
     weight_decay=0.01,
     save_strategy="steps",
     per_device_eval_batch_size=4,    # Adjust based on your GPU memory
+eval_accumulation_steps=5,
     push_to_hub=False,
     report_to='none',
     # Additional arguments for multi-GPU setup
