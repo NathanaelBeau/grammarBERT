@@ -156,7 +156,7 @@ steps_per_epoch = len(train_dataset) // total_train_batch_size  # Use integer di
 
 # Update training arguments
 training_args = TrainingArguments(
-    output_dir=f"./outputs/{model_checkpoint}-finetuned-codebertmlm",
+    output_dir=f"./outputs/{model_checkpoint}-finetuned-codebertmlm-epoch",
     evaluation_strategy="epoch",  # Evaluate at the end of each epoch
     learning_rate=5e-5,
     weight_decay=0.01,
