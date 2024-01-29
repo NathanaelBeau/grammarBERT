@@ -83,6 +83,7 @@ test_dataset = CodeDataset(test_data, tokenizer)
 
 # Manual evaluation
 model.eval()
+model.to('cuda')
 
 # Define training arguments (adjust as needed)
 training_args = TrainingArguments(
@@ -92,7 +93,6 @@ eval_accumulation_steps=20,
 evaluation_strategy="steps",
     push_to_hub=False,
     report_to='none',
-    fp16=True,  # Enable if GPUs support FP16
 
     # Additional arguments for multi-GPU setup
 )
