@@ -1,12 +1,12 @@
 #!/bin/bash
 
-#SBATCH --job-name=grammarbert
+#SBATCH --job-name=grammarberttest
 
 #SBATCH --qos=qos_gpu-t3
 
-#SBATCH --output=./logfiles/logfile_grammarbert.out
+#SBATCH --output=./logfiles/logfile_grammarbert_test.out
 
-#SBATCH --error=./logfiles/logfile_grammarbert.err
+#SBATCH --error=./logfiles/logfile_grammarbert_test.err
 
 #SBATCH --time=03:30:00
 
