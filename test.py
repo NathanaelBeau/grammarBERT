@@ -14,7 +14,7 @@ class DebugCallback(TrainerCallback):
         print(logs)
 
 # Model and tokenizer initialization (adjust paths and settings as needed)
-model_checkpoint = "outputs/microsoft/codebert-base-mlm-finetuned-codebertmlm/checkpoint-200"
+model_checkpoint = "outputs/microsoft/codebert-base-finetuned-codebertmlm/checkpoint-45"
 model = RobertaForMaskedLM.from_pretrained(model_checkpoint, local_files_only=True)
 # Move model to GPU if available
 tokenizer = RobertaTokenizer.from_pretrained(model_checkpoint, local_files_only=True)
@@ -98,6 +98,5 @@ trainer = Trainer(
     compute_metrics=compute_metrics,
     # Other parameters if necessary
 )
-
 a = trainer.predict(test_dataset)
 print(a)
