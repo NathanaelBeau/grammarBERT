@@ -7,8 +7,6 @@ from sklearn.metrics import accuracy_score
 from transformers import EvalPrediction
 
 from transformers import RobertaForMaskedLM, RobertaTokenizer, DataCollatorForLanguageModeling, TrainingArguments, Trainer, TrainerCallback
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Using device: {device}")
 
 # Callback for debugging
 class DebugCallback(TrainerCallback):
@@ -16,10 +14,9 @@ class DebugCallback(TrainerCallback):
         print(logs)
 
 # Model and tokenizer initialization (adjust paths and settings as needed)
-model_checkpoint = "outputs/microsoft/codebert-base-finetuned-codebertmlm/checkpoint-45"
+model_checkpoint = "outputs/microsoft/codebert-base-mlm-finetuned-codebertmlm/checkpoint-200"
 model = RobertaForMaskedLM.from_pretrained(model_checkpoint, local_files_only=True)
 # Move model to GPU if available
-model = model.to(device)
 tokenizer = RobertaTokenizer.from_pretrained(model_checkpoint, local_files_only=True)
 
 def read_gzipped_jsonl(file_path):
@@ -83,9 +80,6 @@ print(num_gpus)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
-# Move model to GPU if available
-model = model.to(device)
-
 # Define TrainingArguments for evaluation
 training_args = TrainingArguments(
     output_dir="./outputs/evaluation_output",
@@ -105,6 +99,5 @@ trainer = Trainer(
     # Other parameters if necessary
 )
 
-# Evaluate the model
-eval_results = trainer.evaluate()
-print(eval_results)
+a = trainer.predict(test_dataset)
+print(a)
