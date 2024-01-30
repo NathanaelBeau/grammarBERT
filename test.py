@@ -7,6 +7,8 @@ from sklearn.metrics import accuracy_score
 from transformers import EvalPrediction
 
 from transformers import RobertaForMaskedLM, RobertaTokenizer, DataCollatorForLanguageModeling, TrainingArguments, Trainer, TrainerCallback
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
 
 # Callback for debugging
 class DebugCallback(TrainerCallback):
@@ -16,6 +18,8 @@ class DebugCallback(TrainerCallback):
 # Model and tokenizer initialization (adjust paths and settings as needed)
 model_checkpoint = "outputs/microsoft/codebert-base-finetuned-codebertmlm/checkpoint-45"
 model = RobertaForMaskedLM.from_pretrained(model_checkpoint, local_files_only=True)
+# Move model to GPU if available
+model = model.to(device)
 tokenizer = RobertaTokenizer.from_pretrained(model_checkpoint, local_files_only=True)
 
 def read_gzipped_jsonl(file_path):
@@ -56,10 +60,7 @@ class CodeDataset(Dataset):
             truncation=True,
             return_tensors='pt')
 
-        return {'input_ids': encoded_actions['input_ids'].squeeze(),
-                'attention_mask': encoded_actions['attention_mask'].squeeze(),
-                'labels': encoded_actions['input_ids'].squeeze()
-                }
+        return {key: value.to(device) for key, value in encoded_actions.items()}
 
 # Load the test data (adjust the path and method as per your original script)
 gzipped_jsonl_file = 'dataset/evaluation_data.jsonl.gz'
@@ -69,10 +70,6 @@ test_data = read_gzipped_jsonl(gzipped_jsonl_file)
 
 test_data = test_data[:10000]
 
-# Creating Datacollator
-data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=True, mlm_probability=0.15)
-
-
 # Creating the test dataset
 test_dataset = CodeDataset(test_data, tokenizer)
 
@@ -80,6 +77,7 @@ test_dataset = CodeDataset(test_data, tokenizer)
 data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm_probability=0.15)
 
 num_gpus = torch.cuda.device_count()  # Automatically detects the number of GPUs available
+print(num_gpus)
 
 # Assuming per_device_train_batch_size is the batch size per GPU
 per_device_train_batch_size = 32  # Adjust based on your GPU memory
