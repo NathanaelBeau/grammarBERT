@@ -95,13 +95,11 @@ training_args = TrainingArguments(
     evaluation_strategy="epoch",  # Evaluate at the end of each epoch
     learning_rate=5e-5,
     weight_decay=0.01,
-    save_strategy="epoch",  # Save at the end of each epoch
-    per_device_train_batch_size=per_device_train_batch_size,
     per_device_eval_batch_size=8,  # Adjust based on your GPU memory
-    num_train_epochs=5,
+    num_train_epochs=1,
     push_to_hub=False,
-    fp16=True,  # Enable if GPUs support FP16
     report_to='none',
+eval_accumulation_steps=5,
     # Additional arguments for multi-GPU setup
     # ...
 )
@@ -124,9 +122,4 @@ trainer = Trainer(
     callbacks=[DebugCallback()]
 )
 
-
-# Perform the evaluation
-evaluation_results = trainer.evaluate()
-
-# Print the evaluation results
-print("Evaluation Results:", evaluation_results)
+trainer.train()
