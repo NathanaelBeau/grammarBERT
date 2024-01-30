@@ -79,45 +79,32 @@ data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm_probabi
 num_gpus = torch.cuda.device_count()  # Automatically detects the number of GPUs available
 print(num_gpus)
 
-# Assuming per_device_train_batch_size is the batch size per GPU
-per_device_train_batch_size = 32  # Adjust based on your GPU memory
+# Check if GPU is available and set the device
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
 
-# Effective total batch size across all GPUs
-total_train_batch_size = per_device_train_batch_size * num_gpus
+# Move model to GPU if available
+model = model.to(device)
 
-# Calculate steps_per_epoch as the number of samples divided by the total batch size
-
-# Update training arguments
+# Define TrainingArguments for evaluation
 training_args = TrainingArguments(
-    output_dir=f"./outputs/{model_checkpoint}-finetuned-codebertmlm-epoch",
-    evaluation_strategy="epoch",  # Evaluate at the end of each epoch
-    learning_rate=5e-5,
-    weight_decay=0.01,
-    per_device_eval_batch_size=8,  # Adjust based on your GPU memory
-    num_train_epochs=1,
-    push_to_hub=False,
-    report_to='none',
-eval_accumulation_steps=5,
-    # Additional arguments for multi-GPU setup
-    # ...
+    output_dir="./outputs/evaluation_output",
+    per_device_eval_batch_size=8,  # Batch size per GPU for evaluation
+    do_train=False,  # Disable training
+    do_eval=True,  # Enable evaluation
+    evaluation_strategy="epoch",
+    report_to='none'
 )
 
-
-
-# Callback for debugging
-class DebugCallback(TrainerCallback):
-    def on_log(self, args, state, control, logs=None, **kwargs):
-        print(logs)
-
-
+# Create a Trainer instance
 trainer = Trainer(
     model=model,
     args=training_args,
     eval_dataset=test_dataset,
-    data_collator=data_collator,
-    tokenizer=tokenizer,
     compute_metrics=compute_metrics,
-    callbacks=[DebugCallback()]
+    # Other parameters if necessary
 )
 
-trainer.train()
+# Evaluate the model
+eval_results = trainer.evaluate()
+print(eval_results)
