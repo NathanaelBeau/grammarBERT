@@ -112,7 +112,7 @@ id_dataset = dataset.map(transform_to_id, batched=True, num_proc=4, remove_colum
 
 tokenized_train_dataset = id_dataset.map(tokenize_function, batched=True, num_proc=4)
 
-max_length = 128   # Set your desired max length
+max_length = 256   # Set your desired max length
 
 lm_datasets = tokenized_train_dataset.map(
     padd_derivations,
@@ -124,7 +124,7 @@ lm_datasets = tokenized_train_dataset.map(
 data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm_probability=0.15)
 
 training_args = TrainingArguments(
-    f"skurt-finetuned-test",
+    output_dir=f"./outputs/{model_checkpoint}-finetuned-codebertmlm-epoch-train",
     evaluation_strategy = "epoch",
     learning_rate=2e-5,
     weight_decay=0.01,
@@ -132,6 +132,7 @@ training_args = TrainingArguments(
     report_to='none',
         logging_steps=20,
     num_train_epochs=5,
+    fp16=True,  # Enable if GPUs support FP16
     per_device_train_batch_size=32,  # batch size per device during training
     per_device_eval_batch_size=32  # batch size for evaluation
 )
