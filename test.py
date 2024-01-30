@@ -2,6 +2,7 @@ import json
 import gzip
 from torch.utils.data import Dataset
 import numpy as np
+import torch
 from sklearn.metrics import accuracy_score
 from transformers import EvalPrediction
 
@@ -24,29 +25,15 @@ def read_gzipped_jsonl(file_path):
             json_obj = json.loads(line)
             data.append(json_obj)
     return data
-from datasets import load_metric
+import evaluate
 
-metric = load_metric("accuracy")
+accuracy = evaluate.load("accuracy")
 
 def compute_metrics(eval_pred):
-    logits, labels = eval_pred
-    predictions = np.argmax(logits, axis=-1)
-    return {metric.compute(predictions=predictions, references=labels)}
-# # Define the compute_metrics function (copy from your original script)
-# def compute_metrics(eval_pred: EvalPrediction):
-#     predictions, labels = eval_pred
-#     # Flatten the outputs and labels
-#     predictions = np.argmax(predictions, axis=-1).flatten()
-#     labels = labels.flatten()
-#
-#     # Compute accuracy, excluding the ignored index (-100 used for non-masked tokens)
-#     mask = labels != -100
-#     predictions = predictions[mask]
-#     labels = labels[mask]
-#
-#     return {"accuracy": accuracy_score(labels, predictions)}
+    predictions, labels = eval_pred
+    predictions = np.argmax(predictions, axis=1)
+    return accuracy.compute(predictions=predictions, references=labels)
 
-# Define the dataset class (copy from your original script)
 # Dataset class from pytorch
 class CodeDataset(Dataset):
     def __init__(self, data, tokenizer, max_length=256):
@@ -89,32 +76,54 @@ data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=True, m
 # Creating the test dataset
 test_dataset = CodeDataset(test_data, tokenizer)
 
-# Manual evaluation
-model.eval()
-model.to('cuda')
+# Creating Datacollator
+data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm_probability=0.15)
 
-# Define training arguments (adjust as needed)
+num_gpus = torch.cuda.device_count()  # Automatically detects the number of GPUs available
+
+# Assuming per_device_train_batch_size is the batch size per GPU
+per_device_train_batch_size = 32  # Adjust based on your GPU memory
+
+# Effective total batch size across all GPUs
+total_train_batch_size = per_device_train_batch_size * num_gpus
+
+# Calculate steps_per_epoch as the number of samples divided by the total batch size
+
+# Update training arguments
 training_args = TrainingArguments(
-    output_dir=f"./outputs/{model_checkpoint}-finetuned-codebertmlm",
-    per_device_eval_batch_size=8,    # Adjust based on your GPU memory
-eval_accumulation_steps=20,
-evaluation_strategy="steps",
+    output_dir=f"./outputs/{model_checkpoint}-finetuned-codebertmlm-epoch",
+    evaluation_strategy="epoch",  # Evaluate at the end of each epoch
+    learning_rate=5e-5,
+    weight_decay=0.01,
+    save_strategy="epoch",  # Save at the end of each epoch
+    per_device_train_batch_size=per_device_train_batch_size,
+    per_device_eval_batch_size=8,  # Adjust based on your GPU memory
+    num_train_epochs=5,
     push_to_hub=False,
+    fp16=True,  # Enable if GPUs support FP16
     report_to='none',
-
     # Additional arguments for multi-GPU setup
+    # ...
 )
 
-# Initialize the Trainer
+
+
+# Callback for debugging
+class DebugCallback(TrainerCallback):
+    def on_log(self, args, state, control, logs=None, **kwargs):
+        print(logs)
+
+
 trainer = Trainer(
     model=model,
     args=training_args,
     eval_dataset=test_dataset,
+    data_collator=data_collator,
     tokenizer=tokenizer,
     compute_metrics=compute_metrics,
-data_collator = data_collator,
-callbacks = [DebugCallback()]
+    callbacks=[DebugCallback()]
 )
+
 
 # Perform the evaluation
 evaluation_results = trainer.evaluate()
