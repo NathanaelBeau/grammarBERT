@@ -108,19 +108,6 @@ class CodeDataset(Dataset):
         #     }
 
 
-def compute_metrics(eval_pred: EvalPrediction):
-    predictions, labels = eval_pred
-    # Flatten the outputs and labels
-    predictions = np.argmax(predictions, axis=-1).flatten()
-    labels = labels.flatten()
-
-    # Compute accuracy, excluding the ignored index (-100 used for non-masked tokens)
-    mask = labels != -100
-    predictions = predictions[mask]
-    labels = labels[mask]
-
-    return {"accuracy": accuracy_score(labels, predictions)}
-
 # full_data = full_data[:5]
 
 # train test split
@@ -141,7 +128,7 @@ test_dataset = CodeDataset(test_data, tokenizer)
 
 
 # Creating Datacollator
-data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm_probability=0.15)
+data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=True, mlm_probability=0.15)
 
 num_gpus = torch.cuda.device_count()  # Automatically detects the number of GPUs available
 
@@ -163,8 +150,7 @@ training_args = TrainingArguments(
     save_strategy="epoch",  # Save at the end of each epoch
     logging_steps=steps_per_epoch,  # Optional: Adjust as needed
     per_device_train_batch_size=per_device_train_batch_size,
-    per_device_eval_batch_size=8,  # Adjust based on your GPU memory
-    num_train_epochs=5,
+    num_train_epochs=8,
     push_to_hub=False,
     fp16=True,  # Enable if GPUs support FP16
     report_to='none',
@@ -187,7 +173,6 @@ trainer = Trainer(
     eval_dataset=test_dataset,
     data_collator=data_collator, 
     tokenizer=tokenizer,
-    compute_metrics=compute_metrics,
     callbacks=[DebugCallback()]
 )
 
