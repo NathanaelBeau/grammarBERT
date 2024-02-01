@@ -12,7 +12,7 @@ import torch
 from asdl.ast_operation import Grammar, GrammarRule, ReduceAction
 import evaluate
 
-accuracy = evaluate.load("accuracy")
+accuracy = evaluate.load("evaluate/metrics/accuracy/accuracy.py")
 
 def compute_metrics(eval_pred):
     predictions, labels = eval_pred
