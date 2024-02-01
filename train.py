@@ -4,7 +4,7 @@ import random
 random.seed(42)
 
 from transformers import RobertaForMaskedLM, RobertaTokenizer, DataCollatorForLanguageModeling, TrainingArguments, \
-    Trainer
+    Trainer, TrainerCallback
 
 from datasets import load_dataset
 import torch
@@ -106,15 +106,15 @@ dataset = load_dataset("json", data_files="dataset/evaluation_data.json.gz")
 
 dataset = dataset['train']
 
-dataset = dataset.train_test_split(test_size=0.001)
+dataset = dataset.train_test_split(test_size=0.1)
 
-id_dataset = dataset.map(transform_to_id, batched=True, num_proc=4, remove_columns=["action_seq"])
+dataset = dataset.map(transform_to_id, batched=True, num_proc=4, remove_columns=["action_seq"])
 
-tokenized_train_dataset = id_dataset.map(tokenize_function, batched=True, num_proc=4)
+dataset = dataset.map(tokenize_function, batched=True, num_proc=4)
 
-max_length = 256   # Set your desired max length
+max_length = 128   # Set your desired max length
 
-lm_datasets = tokenized_train_dataset.map(
+dataset = dataset.map(
     padd_derivations,
     batched=True,
     batch_size=1000,
@@ -128,24 +128,28 @@ training_args = TrainingArguments(
     evaluation_strategy = "epoch",
     learning_rate=2e-5,
     weight_decay=0.01,
-    push_to_hub=True,
     report_to='none',
-        logging_steps=20,
+    logging_steps=20,
     num_train_epochs=5,
     fp16=True,  # Enable if GPUs support FP16
     per_device_train_batch_size=32,  # batch size per device during training
     per_device_eval_batch_size=32  # batch size for evaluation
 )
 
+# Callback for debugging
+class DebugCallback(TrainerCallback):
+    def on_log(self, args, state, control, logs=None, **kwargs):
+        print(logs)
+
 
 trainer = Trainer(
     model=model,
     args=training_args,
-    train_dataset=lm_datasets["test"],
-    eval_dataset=lm_datasets["test"],
+    train_dataset=dataset["train"],
+    eval_dataset=dataset["test"],
     compute_metrics=compute_metrics,
     preprocess_logits_for_metrics=preprocess_logits_for_metrics,
-
+    callbacks=[DebugCallback()]
 )
 
 trainer.train()
