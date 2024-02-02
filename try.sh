@@ -29,4 +29,4 @@ nvidia-smi
 # This will create a config file on your server
 
 
-srun python train.py
+srun python train_streaming.py
