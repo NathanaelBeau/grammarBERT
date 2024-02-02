@@ -11,6 +11,7 @@ import torch
 
 from asdl.ast_operation import Grammar, GrammarRule, ReduceAction
 import evaluate
+import json
 
 accuracy = evaluate.load("evaluate/metrics/accuracy/accuracy.py")
 
@@ -102,6 +103,13 @@ tokenizer.add_tokens(new_tokens)
 
 model.resize_token_embeddings(len(tokenizer))
 
+# # Read the JSON file
+# with open('dataset/output_data.json', 'r', encoding='utf-8') as file:
+#     data = json.load(file)
+#
+# print(len(data))
+
+
 dataset_train = load_dataset("json", data_files="dataset/output_data.json.gz", split='train', streaming=True)
 dataset_eval = load_dataset("json", data_files="dataset/evaluation_data.json.gz", split='train', streaming=True)
 
@@ -140,7 +148,8 @@ training_args = TrainingArguments(
     num_train_epochs=5,
     fp16=True,  # Enable if GPUs support FP16
     per_device_train_batch_size=64,  # batch size per device during training
-    per_device_eval_batch_size=32  # batch size for evaluation
+    per_device_eval_batch_size=32,  # batch size for evaluation
+    max_steps=5e7
 )
 
 # Callback for debugging
