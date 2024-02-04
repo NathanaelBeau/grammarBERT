@@ -6,12 +6,12 @@ random.seed(42)
 from transformers import RobertaForMaskedLM, RobertaTokenizer, DataCollatorForLanguageModeling, TrainingArguments, \
     Trainer, TrainerCallback
 
-from datasets import load_dataset
 import torch
 
 from asdl.ast_operation import Grammar, GrammarRule, ReduceAction
 import evaluate
-import json
+from datasets import load_dataset, load_from_disk
+
 
 accuracy = evaluate.load("evaluate/metrics/accuracy/accuracy.py")
 
@@ -22,56 +22,6 @@ def compute_metrics(eval_pred):
     labels = labels.flatten().tolist()
     return accuracy.compute(predictions=predictions, references=labels)
 
-def transform_to_id(examples):
-    input_ids = [tokenizer.convert_tokens_to_ids(tokens) for tokens in examples['action_seq']]
-    return {
-        'input_ids': input_ids,
-    }
-
-def tokenize_function(examples):
-    # Initialize lists for each column
-    input_ids = []
-    attention_masks = []
-    special_tokens_masks = []
-
-    # Iterate over each example
-    for x in examples['input_ids']:
-        # Decode and then tokenize with special token mask
-        input_with_mask = tokenizer(tokenizer.decode(x), return_special_tokens_mask=True)
-
-        # Append the results to the respective lists
-        input_ids.append(input_with_mask['input_ids'])
-        attention_masks.append(input_with_mask['attention_mask'])
-        special_tokens_masks.append(input_with_mask['special_tokens_mask'])
-
-    # Return a dictionary
-    return {
-        'input_ids': input_ids,
-        'attention_mask': attention_masks,
-        'special_tokens_mask': special_tokens_masks
-    }
-
-def padd_derivations(examples):
-    pad_token_id = tokenizer.pad_token_id  # Make sure your tokenizer has a pad token
-
-    # Pad each example individually
-    padded_examples = {k: [] for k in examples.keys()}
-    for i in range(len(examples['input_ids'])):
-        for k in examples.keys():
-            # Pad or truncate the example
-            example = examples[k][i]
-            padded_length = len(example)
-            if padded_length > max_length:
-                padded_example = example[:max_length]  # Truncate if longer than max_length
-            else:
-                padded_example = example + [pad_token_id] * (max_length - padded_length)  # Pad if shorter
-            padded_examples[k].append(padded_example)
-
-    # Set labels to be the same as input_ids
-    padded_examples["labels"] = padded_examples["input_ids"].copy()
-    # print(len(padded_examples["labels"][0]))
-
-    return padded_examples
 
 
 def preprocess_logits_for_metrics(logits, labels):
@@ -103,38 +53,8 @@ tokenizer.add_tokens(new_tokens)
 
 model.resize_token_embeddings(len(tokenizer))
 
-# # Read the JSON file
-# with open('dataset/output_data.json', 'r', encoding='utf-8') as file:
-#     data = json.load(file)
-#
-# print(len(data))
-
-
-dataset_train = load_dataset("json", data_files="dataset/output_data.json.gz", split='train', streaming=True)
-dataset_eval = load_dataset("json", data_files="dataset/evaluation_data.json.gz", split='train', streaming=True)
-
-
-# dataset = dataset['train']
-
-# dataset = dataset.train_test_split(test_size=0.1)
-
-dataset_train = dataset_train.map(transform_to_id, remove_columns=["action_seq"])
-dataset_eval = dataset_eval.map(transform_to_id, remove_columns=["action_seq"])
-
-
-dataset_train = dataset_train.map(tokenize_function)
-dataset_eval = dataset_eval.map(tokenize_function)
-
-
-max_length = 256   # Set your desired max length
-
-dataset_train = dataset_train.map(
-    padd_derivations,
-)
-dataset_eval = dataset_eval.map(
-    padd_derivations,
-)
-
+dataset_train = load_from_disk('dataset/hf_dataset_train')
+dataset_eval = load_from_disk('dataset/hf_dataset_eval')
 
 data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm_probability=0.15)
 
