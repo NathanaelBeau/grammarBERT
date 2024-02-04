@@ -54,7 +54,7 @@ tokenizer.add_tokens(new_tokens)
 model.resize_token_embeddings(len(tokenizer))
 
 # dataset_train = load_from_disk('dataset/hf_dataset_train')
-dataset_train = load_from_disk('dataset/hf_dataset_eval')
+dataset_train = load_from_disk('dataset/hf_dataset_train')
 dataset_eval = load_from_disk('dataset/hf_dataset_eval')
 
 data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm_probability=0.15)
