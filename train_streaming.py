@@ -68,7 +68,7 @@ training_args = TrainingArguments(
     logging_steps=20,
     num_train_epochs=5,
     fp16=True,  # Enable if GPUs support FP16
-    per_device_train_batch_size=64,  # batch size per device during training
+    per_device_train_batch_size=32,  # batch size per device during training
     per_device_eval_batch_size=32,  # batch size for evaluation
     max_steps=int(5e7)
 )
