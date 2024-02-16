@@ -2,6 +2,8 @@ import random
 
 # Set the random seed to a specific number
 random.seed(42)
+import os
+os.environ['CUDA_VISIBLE_DEVICES'] = str(1)
 
 from transformers import RobertaForMaskedLM, RobertaTokenizer, DataCollatorForLanguageModeling, TrainingArguments, Trainer, TrainerCallback
 
@@ -88,10 +90,8 @@ tokenizer.add_tokens(new_tokens)
 model.resize_token_embeddings(len(tokenizer))
 
 # dataset_train = load_from_disk('dataset/hf_dataset_train')
-# dataset_train = load_from_disk('dataset/hf_dataset_train')
+dataset_train = load_from_disk('dataset/hf_dataset_train')
 dataset_eval = load_from_disk('dataset/hf_dataset_eval')
-dataset_eval = dataset_eval.select(range(100))
-print(dataset_eval[1])
 data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm_probability=0.15)
 # data_collator = CustomDataCollatorForLanguageModeling(tokenizer=tokenizer, mlm_probability=0.15)
 
