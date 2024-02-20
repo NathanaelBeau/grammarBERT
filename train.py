@@ -112,7 +112,7 @@ dataset = dataset.map(transform_to_id, batched=True, num_proc=4, remove_columns=
 
 dataset = dataset.map(tokenize_function, batched=True, num_proc=4)
 
-max_length = 128   # Set your desired max length
+max_length = 256   # Set your desired max length
 
 dataset = dataset.map(
     padd_derivations,

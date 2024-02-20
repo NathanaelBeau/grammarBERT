@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="ProjectRootManager" version="2" project-jdk-name="grammarBERT" project-jdk-type="Python SDK" />
+  <component name="Black">
+    <option name="pathToExecutable" value="$USER_HOME$/anaconda3/bin/black" />
+    <option name="sdkName" value="grammarBERT (2)" />
+  </component>
+  <component name="ProjectRootManager" version="2" project-jdk-name="grammarbert" project-jdk-type="Python SDK" />
+  <component name="PyPackaging">
+    <option name="earlyReleasesAsUpgrades" value="true" />
+  </component>
 </project>

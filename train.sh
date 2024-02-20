@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=retrocode
+#SBATCH --job-name=grammarbert
 
 #SBATCH --qos=qos_gpu-t4
 
@@ -14,7 +14,7 @@
 
 #SBATCH --gres=gpu:1
 
-#SBATCH --cpus-per-task=1
+#SBATCH --cpus-per-task=10
 
 #SBATCH --hint=nomultithread
 
@@ -29,4 +29,4 @@ nvidia-smi
 # This will create a config file on your server
 
 
-srun python finetuningcodebertmlm.py
+srun python finetuning_streaming.py

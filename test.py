@@ -1,102 +1,93 @@
-import json
-import gzip
-from torch.utils.data import Dataset
-import numpy as np
-import torch
-from sklearn.metrics import accuracy_score
-from transformers import EvalPrediction
+import random
+
+# Set the random seed to a specific number
+random.seed(42)
 
 from transformers import RobertaForMaskedLM, RobertaTokenizer, DataCollatorForLanguageModeling, TrainingArguments, Trainer, TrainerCallback
+
+import torch
+
+from asdl.ast_operation import Grammar, GrammarRule, ReduceAction
+import evaluate
+from datasets import load_dataset, load_from_disk
+
+
+accuracy = evaluate.load("evaluate/metrics/accuracy/accuracy.py")
+
+def compute_metrics(eval_pred):
+    predictions, labels = eval_pred
+    # Flatten the tensors to 1D lists
+    predictions = predictions.flatten().tolist()
+    labels = labels.flatten().tolist()
+    return accuracy.compute(predictions=predictions, references=labels)
+
+def preprocess_logits_for_metrics(logits, labels):
+    """
+    Original Trainer may have a memory leak.
+    This is a workaround to avoid storing too many tensors that are not needed.
+    """
+    pred_ids = torch.argmax(logits, dim=-1)
+    return pred_ids
+
+
+asdl_text = open('./asdl/PythonASDLgrammar3,9.txt').read()
+grammar, _, _ = Grammar.from_text(asdl_text)
+act_list = [GrammarRule(rule.constructor.name, rule.type.name, rule.fields) for rule in grammar]
+assert (len(grammar) == len(act_list))
+Reduce = ReduceAction('Reduce')
+ReducePrimitif = ReduceAction('Reduce_primitif')
+act_dict = dict([(act.label, act) for act in act_list])
+act_dict[Reduce.label] = Reduce
+act_dict[ReducePrimitif.label] = ReducePrimitif
+
+# # increase the vocabulary of Bert model and tokenizer
+new_tokens = list(act_dict)
+
+model_checkpoint = "microsoft/codebert-base"
+model = RobertaForMaskedLM.from_pretrained('checkpoint-13000')
+tokenizer = RobertaTokenizer.from_pretrained(model_checkpoint, additional_special_tokens=new_tokens)
+
+tokenizer.add_tokens(new_tokens)
+
+model.resize_token_embeddings(len(tokenizer))
+
+dataset_eval = load_from_disk('dataset/hf_dataset_eval')
+dataset_eval = dataset_eval.select(range(1000))
+print(dataset_eval[1])
+data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm_probability=0.15)
+
+training_args = TrainingArguments(
+    output_dir=f"./outputs/{model_checkpoint}-finetuned-codebertmlm-epoch-train",
+    evaluation_strategy = "epoch",
+    learning_rate=2e-5,
+    weight_decay=0.01,
+    report_to='none',
+    logging_steps=1,
+    num_train_epochs=5,
+    # fp16=True,  # Enable if GPUs support FP16
+    per_device_train_batch_size=2,  # batch size per device during training
+    per_device_eval_batch_size=2,  # batch size for evaluation
+    max_steps=10#int(5e7)
+)
 
 # Callback for debugging
 class DebugCallback(TrainerCallback):
     def on_log(self, args, state, control, logs=None, **kwargs):
         print(logs)
 
-# Model and tokenizer initialization (adjust paths and settings as needed)
-model_checkpoint = "outputs/microsoft/codebert-base-finetuned-codebertmlm/checkpoint-45"
-model = RobertaForMaskedLM.from_pretrained(model_checkpoint, local_files_only=True)
-# Move model to GPU if available
-tokenizer = RobertaTokenizer.from_pretrained(model_checkpoint, local_files_only=True)
 
-def read_gzipped_jsonl(file_path):
-    data = []
-    with gzip.open(file_path, 'rt') as file:  # 'rt' mode for text reading
-        for line in file:
-            json_obj = json.loads(line)
-            data.append(json_obj)
-    return data
-import evaluate
-
-accuracy = evaluate.load("accuracy")
-
-def compute_metrics(eval_pred):
-    predictions, labels = eval_pred
-    predictions = np.argmax(predictions, axis=1)
-    return accuracy.compute(predictions=predictions, references=labels)
-
-# Dataset class from pytorch
-class CodeDataset(Dataset):
-    def __init__(self, data, tokenizer, max_length=256):
-        self.data = data
-        self.tokenizer = tokenizer
-        self.max_length = max_length
-
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, idx):
-        item = self.data[idx]
-        action_seq = item['action_seq']
-
-        encoded_actions = self.tokenizer.encode_plus(
-            action_seq,
-            add_special_tokens=True,
-            max_length=self.max_length,
-            padding='max_length',
-            truncation=True,
-            return_tensors='pt')
-
-        return {key: value.to(device) for key, value in encoded_actions.items()}
-
-# Load the test data (adjust the path and method as per your original script)
-gzipped_jsonl_file = 'dataset/evaluation_data.jsonl.gz'
-# Define the read_gzipped_jsonl function or similar function to load your data
-# ...
-test_data = read_gzipped_jsonl(gzipped_jsonl_file)
-
-test_data = test_data[:10000]
-
-# Creating the test dataset
-test_dataset = CodeDataset(test_data, tokenizer)
-
-# Creating Datacollator
-data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm_probability=0.15)
-
-num_gpus = torch.cuda.device_count()  # Automatically detects the number of GPUs available
-print(num_gpus)
-
-# Check if GPU is available and set the device
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Using device: {device}")
-
-# Define TrainingArguments for evaluation
-training_args = TrainingArguments(
-    output_dir="./outputs/evaluation_output",
-    per_device_eval_batch_size=8,  # Batch size per GPU for evaluation
-    do_train=False,  # Disable training
-    do_eval=True,  # Enable evaluation
-    evaluation_strategy="epoch",
-    report_to='none'
-)
-
-# Create a Trainer instance
 trainer = Trainer(
     model=model,
     args=training_args,
-    eval_dataset=test_dataset,
+    eval_dataset=dataset_eval,
     compute_metrics=compute_metrics,
-    # Other parameters if necessary
+    preprocess_logits_for_metrics=preprocess_logits_for_metrics,
+    callbacks=[DebugCallback()],
+    data_collator=data_collator
 )
-a = trainer.predict(test_dataset)
-print(a)
+
+predict = trainer.predict(dataset_eval)
+
+a = 0
+
+print(predict)

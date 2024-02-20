@@ -2,8 +2,6 @@ import random
 
 # Set the random seed to a specific number
 random.seed(42)
-import os
-os.environ['CUDA_VISIBLE_DEVICES'] = str(1)
 
 from transformers import RobertaForMaskedLM, RobertaTokenizer, DataCollatorForLanguageModeling, TrainingArguments, Trainer, TrainerCallback
 
@@ -23,40 +21,6 @@ def compute_metrics(eval_pred):
     labels = labels.flatten().tolist()
     return accuracy.compute(predictions=predictions, references=labels)
 
-class CustomDataCollatorForLanguageModeling(DataCollatorForLanguageModeling):
-    def __init__(self, tokenizer, mlm=True, mlm_probability=0.15):
-        super().__init__(tokenizer=tokenizer, mlm=mlm, mlm_probability=mlm_probability)
-
-    def torch_mask_tokens(self, inputs, special_tokens_mask=None):
-        """Override the method to customize the masking behavior."""
-        print("torch_mask_tokens is called")
-        labels = inputs.clone()
-        # Probability of masking a token
-        probability_matrix = torch.full(labels.shape, self.mlm_probability)
-
-        if special_tokens_mask is None:
-            special_tokens_mask = [
-                self.tokenizer.get_special_tokens_mask(val, already_has_special_tokens=True) for val in labels.tolist()
-            ]
-            special_tokens_mask = torch.tensor(special_tokens_mask, dtype=torch.bool)
-        else:
-            special_tokens_mask = torch.tensor(special_tokens_mask, dtype=torch.bool)
-
-        probability_matrix.masked_fill_(special_tokens_mask, value=0.0)
-        masked_indices = torch.bernoulli(probability_matrix).bool()
-        labels[~masked_indices] = -100  # We only compute loss on masked tokens
-
-        # Replace the masked input tokens with tokenizer.mask_token ([MASK])
-        indices_replaced = torch.bernoulli(torch.full(labels.shape, self.mlm_probability)).bool() & masked_indices
-        inputs[indices_replaced] = self.tokenizer.convert_tokens_to_ids(self.tokenizer.mask_token)
-
-        # Optionally, replace some tokens with random word
-        indices_random = torch.bernoulli(
-            torch.full(labels.shape, self.mlm_probability)).bool() & masked_indices & ~indices_replaced
-        random_words = torch.randint(len(self.tokenizer), labels.shape, dtype=torch.long)
-        inputs[indices_random] = random_words[indices_random]
-
-        return inputs, labels
 
 def preprocess_logits_for_metrics(logits, labels):
     """
@@ -89,11 +53,9 @@ tokenizer.add_tokens(new_tokens)
 
 model.resize_token_embeddings(len(tokenizer))
 
-# dataset_train = load_from_disk('dataset/hf_dataset_train')
 dataset_train = load_from_disk('dataset/hf_dataset_train_nofilter')
 dataset_eval = load_from_disk('dataset/hf_dataset_eval_nofilter')
 data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm_probability=0.15)
-# data_collator = CustomDataCollatorForLanguageModeling(tokenizer=tokenizer, mlm_probability=0.15)
 
 training_args = TrainingArguments(
     output_dir=f"./outputs/{model_checkpoint}-finetuned-codebertmlm-epoch-train-nofilter",
