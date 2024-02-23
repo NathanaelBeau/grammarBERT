@@ -1,6 +1,5 @@
 import json
 import ast
-import numpy as np
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datasets import load_dataset
 from asdl.ast_operation import ast2seq
@@ -54,7 +53,6 @@ def preprocess_batch(batch, act_dict, primitives):
     return processed_batch
 
 def preprocess_examples(dataset, act_dict, primitives):
-    len_code = []
     pass_examples = 0
     output_data = []
 
@@ -70,7 +68,7 @@ def preprocess_examples(dataset, act_dict, primitives):
             if len(batch) == BATCH_SIZE:
                 futures.append(executor.submit(preprocess_batch, batch, act_dict, primitives))
                 batch = []
-            if index == 10_000_000:
+            if index == 3_500_000:
                 break
 
         # Ajouter le dernier lot si nécessaire
@@ -81,7 +79,6 @@ def preprocess_examples(dataset, act_dict, primitives):
         for future in as_completed(futures):
             processed_batch = future.result()
             output_data.extend(processed_batch)
-            len_code.extend([len(example['action_seq']) for example in processed_batch if example])
 
 
     # Écriture des données traitées en bloc dans le fichier
@@ -91,7 +88,7 @@ def preprocess_examples(dataset, act_dict, primitives):
                 json.dump(example, output_file)
                 output_file.write('\n')
 
-def get_act_dict(path='./asdl/PythonASDLgrammar3,9.txt'):
+def get_act_dict(path='./asdl/grammar_3.8.txt'):
     asdl_text = open(path).read()
     grammar, _, terminal_types = Grammar.from_text(asdl_text)
     act_list = [GrammarRule(rule.constructor.name, rule.type.name, rule.fields) for rule in grammar]
