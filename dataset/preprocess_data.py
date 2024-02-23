@@ -11,6 +11,11 @@ BATCH_SIZE = 100
 # Nombre de threads à utiliser pour le ThreadPoolExecutor
 NUM_THREADS = 4
 
+
+# Définir un délai d'attente pour le traitement de chaque lot en secondes
+TIMEOUT_SECONDS = 10
+
+
 tokenizer = RobertaTokenizer.from_pretrained("microsoft/codebert-base-mlm")
 
 def get_data():
@@ -56,9 +61,7 @@ def preprocess_examples(dataset, act_dict, primitives):
     pass_examples = 0
     output_data = []
 
-    # Prétraiter les données par lots en utilisant ThreadPoolExecutor
     with ThreadPoolExecutor(max_workers=NUM_THREADS) as executor:
-        # Création d'une liste pour les futurs résultats
         futures = []
         batch = []
 
@@ -66,25 +69,29 @@ def preprocess_examples(dataset, act_dict, primitives):
             print(index)
             batch.append(sample)
             if len(batch) == BATCH_SIZE:
-                futures.append(executor.submit(preprocess_batch, batch, act_dict, primitives))
+                # Soumettre le lot pour le traitement
+                future = executor.submit(preprocess_batch, batch, act_dict, primitives)
+                futures.append(future)
                 batch = []
-            if index == 3_500_000:
+            if index == 10_500_000:
                 break
 
-        # Ajouter le dernier lot si nécessaire
         if batch:
             futures.append(executor.submit(preprocess_batch, batch, act_dict, primitives))
 
-        # Récupérer les résultats à mesure qu'ils sont terminés
-        for future in as_completed(futures):
-            processed_batch = future.result()
-            output_data.extend(processed_batch)
+        for future in futures:
+            try:
+                # Utiliser wait pour appliquer un délai d'attente à chaque future
+                done, _ = wait([future], timeout=TIMEOUT_SECONDS, return_when=FIRST_COMPLETED)
+                for f in done:
+                    processed_batch = f.result()
+                    output_data.extend(processed_batch)
+            except Exception as e:
+                print(f"Timeout or error occurred: {e}")
 
-
-    # Écriture des données traitées en bloc dans le fichier
     with open('dataset/output_data_filtering<400.jsonl', 'w') as output_file:
         for example in output_data:
-            if example:  # Assurez-vous que l'exemple n'est pas None
+            if example:
                 json.dump(example, output_file)
                 output_file.write('\n')
 
