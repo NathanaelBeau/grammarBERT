@@ -1,10 +1,11 @@
 import json
 import ast
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from datasets import load_dataset
 from asdl.ast_operation import ast2seq
 from asdl.grammar import Grammar, GrammarRule, ReduceAction
 from transformers import RobertaForMaskedLM, RobertaTokenizer
+
+from concurrent.futures import ThreadPoolExecutor, as_completed, wait, FIRST_COMPLETED
 
 # Constante pour la taille des lots
 BATCH_SIZE = 100
