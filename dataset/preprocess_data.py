@@ -103,5 +103,8 @@ def get_act_dict(path='./asdl/grammar_3.8.txt'):
     act_list = [GrammarRule(rule.constructor.name, rule.type.name, rule.fields) for rule in grammar]
     assert (len(grammar) == len(act_list))
     Reduce = ReduceAction('Reduce')
+    ReducePrimitif = ReduceAction('Reduce_primitif')
     act_dict = dict([(act.label, act) for act in act_list])
+    act_dict[Reduce.label] = Reduce
+    act_dict[ReducePrimitif.label] = ReducePrimitif
     return act_dict, terminal_types
