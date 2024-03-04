@@ -43,6 +43,7 @@ def preprocess_example(sample, act_dict, primitives):
             else:
                 tokenized = tokenizer.tokenize(str(action[0]))
                 actions_seq.extend(tokenized)  # This adds each element of the list individually
+                actions_seq.append('<end_primitive>')
         if len(actions_seq) > 712:
             return None
         example['action_seq'] = actions_seq
