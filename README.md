@@ -1,6 +1,6 @@
 # grammarBERT
 
-`grammarBERT` fine-tunes the `codeBERT` model on Python derivation sequences using a Masked Language Modeling (MLM) task. This approach allows `codeBERT` to handle both natural language and syntax-specific code tokens, enhancing its effectiveness in tasks like code generation and grammar-based programming tasks.
+grammarBERT fine-tunes the codeBERT model on Python derivation sequences using a Masked Language Modeling (MLM) task. This approach allows codeBERT to handle both natural language and syntax-specific code tokens, enhancing its effectiveness in tasks like code generation and grammar-based programming tasks.
 
 ## Repository Structure
 ```bash 
@@ -19,7 +19,7 @@
 ```
 ## Training and Fine-Tuning
 
-To train or fine-tune your own `grammarBERT` model, follow these steps:
+To train or fine-tune your own grammarBERT model, follow these steps:
 
 1. **Prepare the Dataset**: Use the `data/create_dataset.py` script to parse Python code and generate AST derivation sequences. This will create the necessary data files for training.
 
@@ -41,7 +41,7 @@ python test.py
 We utilize the transition system outlined in this [ACL article](https://aclanthology.org/2022.findings-acl.173.pdf).
 
 
-During preprocessing, the code is converted into a derivation sequence. In this process, grammar rules are mapped to a grammar-specific vocabulary, while terminal symbols are tokenized using the `codeBERT` tokenizer. Terminal tokens, representing leaf nodes, may consist of multiple subtokens (e.g., "enumerate" tokenizes as `['e', 'num', 'rate']`). To handle this, we introduce an additional symbol into the `codeBERT` vocabulary, indicating the completion of terminal symbol prediction. This symbol plays a distinct role from the REDUCE action, which signifies the end of a grammar rule. While REDUCE marks the conclusion of a rule, the new token ensures the proper termination of terminal sequences before the model predicts subsequent terminals.  We have integrated grammar rules into the `codeBERT` pretrained vocabulary to improve its representation of both grammar rules and terminal symbols.
+During preprocessing, the code is converted into a derivation sequence. In this process, grammar rules are mapped to a grammar-specific vocabulary, while terminal symbols are tokenized using the codeBERT tokenizer. Terminal tokens, representing leaf nodes, may consist of multiple subtokens (e.g., "enumerate" tokenizes as `['e', 'num', 'rate']`). To handle this, we introduce an additional symbol into the codeBERT vocabulary, indicating the completion of terminal symbol prediction. This symbol plays a distinct role from the REDUCE action, which signifies the end of a grammar rule. While REDUCE marks the conclusion of a rule, the new token ensures the proper termination of terminal sequences before the model predicts subsequent terminals.  We have integrated grammar rules into the codeBERT pretrained vocabulary to improve its representation of both grammar rules and terminal symbols.
 
 ## Customization
 
@@ -51,7 +51,7 @@ During preprocessing, the code is converted into a derivation sequence. In this 
 
 ## Test it
 
-You can try our version of `grammarBERT` for Python 3.8, trained on the Stack Dataset, available on the Hugging Face hub:
+You can try our version of grammarBERT for Python 3.8, trained on the Stack Dataset, available on the Hugging Face hub:
 
 ```python
 from transformers import RobertaForMaskedLM, RobertaTokenizer
