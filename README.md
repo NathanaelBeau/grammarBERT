@@ -49,14 +49,6 @@ During preprocessing, the code is converted into a derivation sequence. In this 
 - To use a different Python version, simply copy the relevant grammar rules into the `asdl/` directory from [Python's AST documentation](https://docs.python.org/3/library/ast.html).
 - The training configuration can be adjusted directly in `train.py`.
 
-## Test it
-
-You can try our version of grammarBERT for Python 3.8, trained on the Stack Dataset, available on the Hugging Face hub:
-
-```python
-# grammarBERT
-
-`grammarBERT` fine-tunes the `codeBERT` model on Python derivation sequences using a Masked Language Modeling (MLM) task. This approach allows `codeBERT` to handle both natural language and syntax-specific code tokens, enhancing its effectiveness in tasks like code generation and grammar-based programming tasks.
 
 ## Repository Structure
 ```bash 
